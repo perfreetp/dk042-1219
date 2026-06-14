@@ -1,0 +1,330 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $spacing-lg 0 120rpx;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-md;
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.statBox {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+
+  &.danger {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  }
+
+  &.warning {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  }
+
+  &.info {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  }
+}
+
+.statCount {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+.statCountDanger {
+  color: $color-error;
+}
+
+.statCountWarning {
+  color: $color-warning;
+}
+
+.statCountInfo {
+  color: $color-info;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  margin-top: 4rpx;
+}
+
+/* 过滤栏 */
+.filterBar {
+  display: flex;
+  gap: $spacing-sm;
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-md;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filterTabs {
+  display: flex;
+  gap: $spacing-xs;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: 4rpx;
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04);
+}
+
+.filterTab {
+  padding: 10rpx 24rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+    color: $color-text-white;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.markAllBtn {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+  padding: $spacing-xs $spacing-sm;
+}
+
+/* 提醒列表 */
+.reminderList {
+  padding: 0 $page-padding;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.reminderCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  border-left: 6rpx solid transparent;
+  position: relative;
+  transition: all $transition-base;
+
+  &.danger {
+    border-left-color: $color-error;
+  }
+
+  &.warning {
+    border-left-color: $color-warning;
+  }
+
+  &.info {
+    border-left-color: $color-info;
+  }
+
+  &.read {
+    opacity: 0.7;
+  }
+}
+
+.reminderHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+  gap: $spacing-md;
+}
+
+.reminderTitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.reminderIconBox {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-md;
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+.reminderIconBoxDanger {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.reminderIconBoxWarning {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.reminderIconBoxInfo {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.reminderIcon {
+  font-size: 32rpx;
+}
+
+.reminderTitleText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.unreadDot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: $radius-round;
+  background: $color-error;
+  flex-shrink: 0;
+  margin-top: 8rpx;
+}
+
+.reminderDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.reminderDescription {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.7;
+  margin-bottom: $spacing-md;
+}
+
+.reminderFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.reminderTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.reminderTag {
+  padding: 4rpx 14rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background: $color-bg-hover;
+  color: $color-text-tertiary;
+}
+
+.reminderTagAppliance {
+  background: rgba(34, 197, 94, 0.1);
+  color: $color-primary;
+}
+
+.reminderActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.switchLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.emptyState {
+  padding: $spacing-xl * 3 $spacing-lg;
+  text-align: center;
+  margin: 0 $page-padding;
+  background: $color-bg-card;
+  border-radius: $radius-xl;
+}
+
+.emptyIcon {
+  font-size: 96rpx;
+  margin-bottom: $spacing-md;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.emptyHint {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 设置面板 */
+.settingsCard {
+  margin: 0 $page-padding $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.settingsTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.settingsInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.settingsIcon {
+  font-size: 32rpx;
+}
+
+.settingsText {
+  flex: 1;
+  min-width: 0;
+}
+
+.settingsLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.settingsDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}

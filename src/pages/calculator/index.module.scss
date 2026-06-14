@@ -1,0 +1,347 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $spacing-lg 0 120rpx;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  padding: 0 $page-padding;
+}
+
+.applianceSelector {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.selectorScroll {
+  display: flex;
+  gap: $spacing-sm;
+  padding-bottom: $spacing-xs;
+}
+
+.selectorCard {
+  @include scroll-x-item(260rpx);
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+  display: inline-flex !important;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  &.active {
+    border-color: $color-primary;
+    background: rgba(34, 197, 94, 0.04);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.selectorEmoji {
+  font-size: 40rpx;
+}
+
+.selectorName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.selectorMeta {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.inputCard {
+  margin: 0 $page-padding $spacing-md;
+}
+
+.inputGroup {
+  margin-bottom: $spacing-lg;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.inputLabel {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.inputHint {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}
+
+/* 结果展示 */
+.resultSection {
+  padding: 0 $page-padding;
+}
+
+.recommendationCard {
+  margin-bottom: $spacing-md;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  position: relative;
+  overflow: hidden;
+}
+
+.recommendRepair {
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+}
+
+.recommendMaintain {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.recommendReplace {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.recommendBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 24rpx;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $spacing-md;
+}
+
+.recommendTitle {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.recommendReason {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: 1.7;
+}
+
+.compareSection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.compareCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  position: relative;
+}
+
+.compareCardHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.compareCardIcon {
+  font-size: 36rpx;
+}
+
+.compareCardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.compareCardValue {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  margin-bottom: 4rpx;
+}
+
+.compareCardValueRepair {
+  color: $color-warning;
+}
+
+.compareCardValueReplace {
+  color: $color-error;
+}
+
+.compareCardUnit {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.compareItemList {
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx dashed $color-border;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.compareItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.riskCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.riskHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.riskTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.riskLevel {
+  padding: 6rpx 20rpx;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+}
+
+.riskLevelLow {
+  background: rgba(34, 197, 94, 0.12);
+  color: $color-primary;
+}
+
+.riskLevelMedium {
+  background: rgba(245, 158, 11, 0.12);
+  color: $color-warning;
+}
+
+.riskLevelHigh {
+  background: rgba(239, 68, 68, 0.12);
+  color: $color-error;
+}
+
+.riskBarContainer {
+  height: 16rpx;
+  background: $color-bg-hover;
+  border-radius: $radius-round;
+  overflow: hidden;
+  margin-bottom: $spacing-sm;
+}
+
+.riskBarFill {
+  height: 100%;
+  border-radius: $radius-round;
+  transition: width 0.5s ease;
+}
+
+.riskBarLow {
+  background: linear-gradient(90deg, $color-primary-light 0%, $color-primary 100%);
+}
+
+.riskBarMedium {
+  background: linear-gradient(90deg, $color-repair-light 0%, $color-repair 100%);
+}
+
+.riskBarHigh {
+  background: linear-gradient(90deg, $color-replace-light 0%, $color-replace 100%);
+}
+
+.riskFactors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+}
+
+.riskFactor {
+  font-size: $font-size-xs;
+  padding: 4rpx 14rpx;
+  background: $color-bg-hover;
+  color: $color-text-secondary;
+  border-radius: $radius-xs;
+}
+
+.savingCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.savingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-lg;
+}
+
+.savingItem {
+  text-align: center;
+}
+
+.savingItemIcon {
+  font-size: 36rpx;
+  margin-bottom: $spacing-xs;
+}
+
+.savingItemValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  margin-bottom: 4rpx;
+}
+
+.savingItemLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.emptyState {
+  padding: $spacing-xl * 2 $spacing-lg;
+  text-align: center;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  margin: 0 $page-padding;
+}
+
+.emptyIcon {
+  font-size: 80rpx;
+  margin-bottom: $spacing-md;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.emptyHint {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}

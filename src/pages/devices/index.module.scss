@@ -1,0 +1,174 @@
+@use '@/styles/variables.scss' as *;
+
+.pageContainer {
+  padding-top: $spacing-lg;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.filterBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+}
+
+.filterItem {
+  @include button-reset;
+  height: 60rpx;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  background: $color-bg-card;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  white-space: nowrap;
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04);
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+
+.filterItemActive {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  color: $color-text-white;
+  box-shadow: 0 4rpx 12rpx rgba(34, 197, 94, 0.3);
+}
+
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.fab {
+  position: fixed;
+  right: $spacing-lg;
+  bottom: 140rpx;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  color: $color-text-white;
+  @include flex-center;
+  font-size: 56rpx;
+  box-shadow: 0 8rpx 32rpx rgba(34, 197, 94, 0.4);
+  z-index: 100;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+/* 模态框样式 */
+.modalMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  @include flex-center;
+  z-index: 1000;
+}
+
+.modalContainer {
+  width: 90%;
+  max-width: 680rpx;
+  max-height: 85vh;
+  background: $color-bg-card;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  padding: $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.modalClose {
+  width: 56rpx;
+  height: 56rpx;
+  @include flex-center;
+  font-size: $font-size-xl;
+  color: $color-text-tertiary;
+}
+
+.modalBody {
+  padding: $spacing-lg;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.formGroup {
+  margin-bottom: $spacing-lg;
+}
+
+.formLabel {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.segmented {
+  display: flex;
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: 4rpx;
+  gap: 4rpx;
+}
+
+.segmentedItem {
+  flex: 1;
+  height: 72rpx;
+  @include flex-center;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-bg-card;
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+    box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.06);
+  }
+}
+
+.modalFooter {
+  padding: $spacing-lg;
+  border-top: 1rpx solid $color-divider;
+  display: flex;
+  gap: $spacing-md;
+}
+
+.footerBtn {
+  flex: 1;
+}

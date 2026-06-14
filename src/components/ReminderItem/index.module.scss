@@ -1,0 +1,117 @@
+@use '@/styles/variables.scss' as *;
+
+.item {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  border-left: 6rpx solid $color-border;
+  position: relative;
+  transition: all $transition-base;
+}
+
+.clickable {
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.unread {
+  background: rgba(34, 197, 94, 0.03);
+}
+
+.disabled {
+  opacity: 0.5;
+}
+
+.info {
+  border-left-color: $color-info;
+}
+
+.warning {
+  border-left-color: $color-warning;
+}
+
+.danger {
+  border-left-color: $color-error;
+}
+
+.left {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.iconBox {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+  @include flex-center;
+}
+
+.icon {
+  font-size: 36rpx;
+}
+
+.dot {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: $radius-round;
+  background: $color-error;
+  border: 2rpx solid $color-bg-card;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin-bottom: 8rpx;
+}
+
+.title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+  flex: 1;
+}
+
+.date {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+  margin-top: 4rpx;
+}
+
+.description {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  @include text-ellipsis-multi(2);
+}
+
+.applianceTag {
+  display: inline-block;
+  margin-top: $spacing-xs;
+  padding: 4rpx 12rpx;
+  background: $color-bg-hover;
+  color: $color-text-tertiary;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+}
+
+.switchBox {
+  flex-shrink: 0;
+  padding-top: 8rpx;
+}

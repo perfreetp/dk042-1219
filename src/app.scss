@@ -1,0 +1,123 @@
+@use '@/styles/compat.scss';
+@use '@/styles/variables.scss' as *;
+
+page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB',
+    sans-serif;
+  font-size: $font-size-md;
+  line-height: $line-height-normal;
+  color: $color-text-primary;
+  background: linear-gradient(180deg, #ecfdf5 0%, $color-bg-page 30%);
+  min-height: 100vh;
+}
+
+.pageContainer {
+  padding: 0 $page-padding;
+  padding-bottom: 120rpx;
+}
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.rowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rowCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+}
+
+.divider {
+  height: 1rpx;
+  background: $color-divider;
+  margin: $spacing-md 0;
+}
+
+.inputField {
+  width: 100%;
+  height: 80rpx;
+  background: #f8fafc;
+  border-radius: $radius-md;
+  padding: 0 $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &:focus {
+    border-color: $color-primary;
+    background: #ffffff;
+  }
+}
+
+.btnPrimary {
+  @include button-reset;
+  height: $button-height-md;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  color: $color-text-white;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  min-width: 160rpx;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.btnSecondary {
+  @include button-reset;
+  height: $button-height-md;
+  background: $color-bg-hover;
+  color: $color-primary;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  min-width: 160rpx;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.emptyState {
+  padding: $spacing-xl * 2 $spacing-lg;
+  text-align: center;
+}
+
+.emptyText {
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+  margin-top: $spacing-md;
+}

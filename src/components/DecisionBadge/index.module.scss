@@ -1,0 +1,69 @@
+@use '@/styles/variables.scss' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  border-radius: $radius-round;
+  white-space: nowrap;
+}
+
+.icon {
+  font-size: $font-size-md;
+  line-height: 1;
+}
+
+.label {
+  font-weight: $font-weight-medium;
+  line-height: 1;
+}
+
+.sizeSm {
+  padding: 6rpx 16rpx;
+  gap: 4rpx;
+
+  .icon {
+    font-size: $font-size-sm;
+  }
+
+  .label {
+    font-size: $font-size-xs;
+  }
+}
+
+.sizeMd {
+  padding: 10rpx 24rpx;
+
+  .label {
+    font-size: $font-size-sm;
+  }
+}
+
+.sizeLg {
+  padding: 14rpx 32rpx;
+  gap: 10rpx;
+
+  .icon {
+    font-size: $font-size-xl;
+  }
+
+  .label {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.repair {
+  background: rgba(245, 158, 11, 0.12);
+  color: $color-repair;
+}
+
+.maintain {
+  background: rgba(34, 197, 94, 0.12);
+  color: $color-primary;
+}
+
+.replace {
+  background: rgba(239, 68, 68, 0.12);
+  color: $color-replace;
+}
