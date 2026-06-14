@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Appliance, NewApplianceCandidate, Reminder } from '@/types';
 import { mockAppliances, mockCandidates } from '@/data/mockData';
-import { generateReminders, generateId } from '@/utils/calculator';
+import { generateReminders, generateId, ReminderSettings, DEFAULT_REMINDER_SETTINGS } from '@/utils/calculator';
 
 const STORAGE_KEY = 'appliance_decision_data_v1';
 
@@ -10,6 +10,7 @@ interface PersistedData {
   candidates: NewApplianceCandidate[];
   reminders: Reminder[];
   selectedApplianceId: string | null;
+  reminderSettings: ReminderSettings;
   isInitialized: boolean;
 }
 
@@ -53,6 +54,7 @@ interface ApplianceStore {
   reminders: Reminder[];
   selectedApplianceId: string | null;
   storeInitialized: boolean;
+  reminderSettings: ReminderSettings;
 
   addAppliance: (appliance: Omit<Appliance, 'id' | 'createdAt'>) => void;
   updateAppliance: (id: string, data: Partial<Appliance>) => void;
@@ -70,6 +72,7 @@ interface ApplianceStore {
   refreshReminders: () => void;
   markAllRemindersRead: () => void;
   markAllAsRead: () => void;
+  updateReminderSetting: (key: keyof ReminderSettings, value: boolean) => void;
 
   initStore: () => void;
   resetToMock: () => void;
@@ -83,6 +86,7 @@ const getInitialState = () => {
       candidates: persisted.candidates,
       reminders: persisted.reminders,
       selectedApplianceId: persisted.selectedApplianceId,
+      reminderSettings: persisted.reminderSettings || DEFAULT_REMINDER_SETTINGS,
       storeInitialized: true,
     };
   }
@@ -91,8 +95,33 @@ const getInitialState = () => {
     candidates: [],
     reminders: [],
     selectedApplianceId: null,
+    reminderSettings: DEFAULT_REMINDER_SETTINGS,
     storeInitialized: false,
   };
+};
+
+const rebuildReminders = (
+  appliances: Appliance[],
+  existingReminders: Reminder[],
+  settings: ReminderSettings
+): Reminder[] => {
+  const generated = generateReminders(appliances, settings);
+  const disabledTypes = new Set<string>();
+  if (!settings.warranty) disabledTypes.add('warranty');
+  if (!settings.energy) disabledTypes.add('energy');
+  if (!settings.repair) disabledTypes.add('repair');
+  if (!settings.maintenance) disabledTypes.add('maintenance');
+
+  const existingMap = new Map(existingReminders.map((r) => [r.id, r]));
+  return generated.map((g) => {
+    const existingReminder = existingMap.get(g.id);
+    const isCategoryDisabled = disabledTypes.has(g.type);
+    return {
+      ...g,
+      isRead: existingReminder ? existingReminder.isRead : false,
+      enabled: existingReminder ? existingReminder.enabled : !isCategoryDisabled,
+    };
+  });
 };
 
 export const useApplianceStore = create<ApplianceStore>((set, get) => ({
@@ -106,9 +135,10 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     };
     set((state) => {
       const newAppliances = [...state.appliances, newAppliance];
-      const newReminders = mergeReminders(
+      const newReminders = rebuildReminders(
+        newAppliances,
         state.reminders,
-        generateReminders(newAppliances)
+        state.reminderSettings
       );
       const newState = {
         appliances: newAppliances,
@@ -125,9 +155,10 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
       const newAppliances = state.appliances.map((a) =>
         a.id === id ? { ...a, ...data } : a
       );
-      const newReminders = mergeReminders(
+      const newReminders = rebuildReminders(
+        newAppliances,
         state.reminders,
-        generateReminders(newAppliances)
+        state.reminderSettings
       );
       const newState = {
         appliances: newAppliances,
@@ -142,9 +173,10 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     set((state) => {
       const newAppliances = state.appliances.filter((a) => a.id !== id);
       const newCandidates = state.candidates.filter((c) => c.compareTargetId !== id);
-      const newReminders = mergeReminders(
+      const newReminders = rebuildReminders(
+        newAppliances,
         state.reminders.filter((r) => r.applianceId !== id),
-        generateReminders(newAppliances)
+        state.reminderSettings
       );
       const newState = {
         appliances: newAppliances,
@@ -244,9 +276,10 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
 
   refreshReminders: () => {
     set((state) => {
-      const newReminders = mergeReminders(
+      const newReminders = rebuildReminders(
+        state.appliances,
         state.reminders,
-        generateReminders(state.appliances)
+        state.reminderSettings
       );
       const newState = {
         reminders: newReminders,
@@ -270,6 +303,23 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     get().markAllRemindersRead();
   },
 
+  updateReminderSetting: (key, value) => {
+    set((state) => {
+      const newSettings = { ...state.reminderSettings, [key]: value };
+      const newReminders = rebuildReminders(
+        state.appliances,
+        state.reminders,
+        newSettings
+      );
+      const newState = {
+        reminderSettings: newSettings,
+        reminders: newReminders,
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
+  },
+
   initStore: () => {
     const { storeInitialized, appliances } = get();
     if (storeInitialized) {
@@ -281,12 +331,17 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     console.log('[Store] 首次启动，加载Mock数据');
     const initialAppliances = mockAppliances;
     const initialCandidates = mockCandidates;
-    const initialReminders = generateReminders(initialAppliances);
+    const initialReminders = rebuildReminders(
+      initialAppliances,
+      [],
+      DEFAULT_REMINDER_SETTINGS
+    );
     const initialState = {
       appliances: initialAppliances,
       candidates: initialCandidates,
       reminders: initialReminders,
       selectedApplianceId: initialAppliances[0]?.id || null,
+      reminderSettings: DEFAULT_REMINDER_SETTINGS,
       storeInitialized: true,
     };
     set(initialState);
@@ -297,35 +352,22 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     clearStorage();
     const initialAppliances = mockAppliances;
     const initialCandidates = mockCandidates;
-    const initialReminders = generateReminders(initialAppliances);
+    const initialReminders = rebuildReminders(
+      initialAppliances,
+      [],
+      DEFAULT_REMINDER_SETTINGS
+    );
     const initialState = {
       appliances: initialAppliances,
       candidates: initialCandidates,
       reminders: initialReminders,
       selectedApplianceId: initialAppliances[0]?.id || null,
+      reminderSettings: DEFAULT_REMINDER_SETTINGS,
       storeInitialized: true,
     };
     set(initialState);
   },
 }));
-
-function mergeReminders(
-  existing: Reminder[],
-  generated: Reminder[]
-): Reminder[] {
-  const existingMap = new Map(existing.map((r) => [r.id, r]));
-  return generated.map((g) => {
-    const existingReminder = existingMap.get(g.id);
-    if (existingReminder) {
-      return {
-        ...g,
-        isRead: existingReminder.isRead,
-        enabled: existingReminder.enabled,
-      };
-    }
-    return g;
-  });
-}
 
 function persistState(state: ApplianceStore) {
   const data: PersistedData = {
@@ -333,6 +375,7 @@ function persistState(state: ApplianceStore) {
     candidates: state.candidates,
     reminders: state.reminders,
     selectedApplianceId: state.selectedApplianceId,
+    reminderSettings: state.reminderSettings,
     isInitialized: state.storeInitialized,
   };
   saveToStorage(data);

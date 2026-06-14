@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Switch } from '@tarojs/components';
 import classnames from 'classnames';
 import { useApplianceStore } from '@/store/appliance';
-import { Reminder } from '@/types';
+import { Reminder, ReminderType } from '@/types';
+import { ReminderSettings } from '@/utils/calculator';
 import styles from './index.module.scss';
 
 type FilterTab = 'all' | 'danger' | 'warning' | 'info';
@@ -26,13 +27,34 @@ const typeLabelMap: Record<string, string> = {
   maintenance: '保养',
 };
 
+const typeToSettingKey: Record<string, keyof ReminderSettings> = {
+  warranty: 'warranty',
+  energy: 'energy',
+  repair: 'repair',
+  maintenance: 'maintenance',
+};
+
+const settingOptions: {
+  key: keyof ReminderSettings;
+  icon: string;
+  label: string;
+  desc: string;
+}[] = [
+  { key: 'warranty', icon: '🛡️', label: '保修到期提醒', desc: '保修结束前 30 天提前通知' },
+  { key: 'energy', icon: '⚡', label: '能耗异常提醒', desc: '电费异常波动时提示' },
+  { key: 'repair', icon: '🔧', label: '维修费用提醒', desc: '维修成本过高或故障时警示' },
+  { key: 'maintenance', icon: '🛠️', label: '保养提醒', desc: '使用年限较长的设备定期保养' },
+];
+
 const RemindersPage: React.FC = () => {
   const {
     reminders,
     appliances,
+    reminderSettings,
     markAsRead,
     markAllAsRead,
     toggleReminderEnabled,
+    updateReminderSetting,
     initStore,
   } = useApplianceStore();
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
@@ -41,25 +63,39 @@ const RemindersPage: React.FC = () => {
     initStore();
   }, [initStore]);
 
+  const isTypeEnabled = (type: ReminderType): boolean => {
+    const key = typeToSettingKey[type];
+    return key ? reminderSettings[key] : true;
+  };
+
   const filteredReminders = useMemo(() => {
     let list = reminders;
     if (filterTab !== 'all') list = list.filter((r) => r.severity === filterTab);
     return list.sort((a, b) => {
       const sMap = { danger: 0, warning: 1, info: 2 };
+      const aDisabled = !a.enabled || !isTypeEnabled(a.type) ? 1 : 0;
+      const bDisabled = !b.enabled || !isTypeEnabled(b.type) ? 1 : 0;
+      if (aDisabled !== bDisabled) return aDisabled - bDisabled;
       if (sMap[a.severity] !== sMap[b.severity]) return sMap[a.severity] - sMap[b.severity];
       if (a.isRead !== b.isRead) return a.isRead ? 1 : -1;
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
-  }, [reminders, filterTab]);
+  }, [reminders, filterTab, reminderSettings]);
 
   const stats = useMemo(() => {
-    const total = reminders.length;
-    const unread = reminders.filter((r) => !r.isRead).length;
-    const danger = reminders.filter((r) => r.severity === 'danger').length;
-    const warning = reminders.filter((r) => r.severity === 'warning').length;
-    const info = reminders.filter((r) => r.severity === 'info').length;
-    return { total, unread, danger, warning, info };
-  }, [reminders]);
+    const activeReminders = reminders.filter(
+      (r) => r.enabled && isTypeEnabled(r.type)
+    );
+    return {
+      total: reminders.length,
+      active: activeReminders.length,
+      unread: activeReminders.filter((r) => !r.isRead).length,
+      danger: activeReminders.filter((r) => r.severity === 'danger').length,
+      warning: activeReminders.filter((r) => r.severity === 'warning').length,
+      info: activeReminders.filter((r) => r.severity === 'info').length,
+      disabled: reminders.filter((r) => !r.enabled || !isTypeEnabled(r.type)).length,
+    };
+  }, [reminders, reminderSettings]);
 
   const getApplianceName = (id?: string) => {
     if (!id) return null;
@@ -76,42 +112,23 @@ const RemindersPage: React.FC = () => {
     return `${d.getMonth() + 1}/${d.getDate()}`;
   };
 
-  const settingOptions = [
-    {
-      key: 'warranty',
-      icon: '🛡️',
-      label: '保修到期提醒',
-      desc: '保修结束前 30 天提前通知',
-    },
-    {
-      key: 'energy',
-      icon: '⚡',
-      label: '能耗异常提醒',
-      desc: '电费异常波动时提示',
-    },
-    {
-      key: 'repair',
-      icon: '🔧',
-      label: '维修费用提醒',
-      desc: '维修成本过高时警示',
-    },
-    {
-      key: 'safety',
-      icon: '🔥',
-      label: '安全隐患提醒',
-      desc: '使用年限过长的老旧设备',
-    },
-  ];
-
   const renderReminderItem = (r: Reminder) => {
     const applianceName = getApplianceName(r.applianceId);
     const severityClass = r.severity as 'danger' | 'warning' | 'info';
+    const categoryEnabled = isTypeEnabled(r.type);
+    const isDisabled = !r.enabled || !categoryEnabled;
+
     return (
       <View
         key={r.id}
-        className={classnames(styles.reminderCard, severityClass, r.isRead && styles.read)}
+        className={classnames(
+          styles.reminderCard,
+          severityClass,
+          r.isRead && styles.read,
+          isDisabled && styles.disabled
+        )}
         onClick={() => {
-          if (!r.isRead) markAsRead(r.id);
+          if (!isDisabled && !r.isRead) markAsRead(r.id);
         }}
       >
         <View className={styles.reminderHeader}>
@@ -127,12 +144,23 @@ const RemindersPage: React.FC = () => {
               <Text className={styles.reminderIcon}>{severityIcon[r.severity]}</Text>
             </View>
             <Text className={styles.reminderTitleText}>{r.title}</Text>
-            {!r.isRead && <View className={styles.unreadDot} />}
+            {!r.isRead && !isDisabled && <View className={styles.unreadDot} />}
           </View>
           <Text className={styles.reminderDate}>{formatDate(r.date)}</Text>
         </View>
 
         <View className={styles.reminderDescription}>{r.description}</View>
+
+        {isDisabled && (
+          <View className={styles.disabledHint}>
+            <Text className={styles.disabledHintIcon}>🔇</Text>
+            <Text className={styles.disabledHintText}>
+              {!categoryEnabled
+                ? `「${typeLabelMap[r.type] || '该分类'}」提醒已全局关闭`
+                : '此条提醒已手动关闭'}
+            </Text>
+          </View>
+        )}
 
         <View className={styles.reminderFooter}>
           <View className={styles.reminderTags}>
@@ -180,7 +208,6 @@ const RemindersPage: React.FC = () => {
 
   return (
     <ScrollView scrollY className={styles.page}>
-      {/* 统计概览 */}
       <View className={styles.statsRow}>
         <View className={classnames(styles.statBox, 'danger')}>
           <View className={classnames(styles.statCount, styles.statCountDanger)}>
@@ -202,9 +229,15 @@ const RemindersPage: React.FC = () => {
         </View>
       </View>
 
-      {/* 设置面板 */}
       <View className={styles.settingsCard}>
-        <View className={styles.settingsTitle}>提醒设置</View>
+        <View className={styles.settingsTitle}>
+          提醒设置
+          {stats.disabled > 0 && (
+            <Text className={styles.settingsSubtitle}>
+              {stats.disabled} 条已停用
+            </Text>
+          )}
+        </View>
         {settingOptions.map((opt) => (
           <View className={styles.settingsRow} key={opt.key}>
             <View className={styles.settingsInfo}>
@@ -214,12 +247,16 @@ const RemindersPage: React.FC = () => {
                 <View className={styles.settingsDesc}>{opt.desc}</View>
               </View>
             </View>
-            <Switch checked color="#22c55e" style={{ transform: 'scale(0.7)' }} />
+            <Switch
+              checked={reminderSettings[opt.key]}
+              color="#22c55e"
+              style={{ transform: 'scale(0.7)' }}
+              onChange={(e) => updateReminderSetting(opt.key, e.detail.value)}
+            />
           </View>
         ))}
       </View>
 
-      {/* 过滤栏 */}
       <View className={styles.filterBar}>
         <View className={styles.filterTabs}>
           {[
@@ -244,7 +281,6 @@ const RemindersPage: React.FC = () => {
         )}
       </View>
 
-      {/* 提醒列表 */}
       {filteredReminders.length === 0 ? (
         <View className={styles.emptyState}>
           <View className={styles.emptyIcon}>🎉</View>

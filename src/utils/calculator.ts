@@ -175,17 +175,40 @@ export const compareEnergy = (
   };
 };
 
-export const generateReminders = (appliances: Appliance[]): Reminder[] => {
+export interface ReminderSettings {
+  warranty: boolean;
+  energy: boolean;
+  repair: boolean;
+  maintenance: boolean;
+}
+
+export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
+  warranty: true,
+  energy: true,
+  repair: true,
+  maintenance: true,
+};
+
+const todayStr = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
+export const generateReminders = (
+  appliances: Appliance[],
+  settings: ReminderSettings = DEFAULT_REMINDER_SETTINGS
+): Reminder[] => {
   const reminders: Reminder[] = [];
   const now = new Date();
   const currentYear = now.getFullYear();
+  const today = todayStr();
 
   appliances.forEach((appliance) => {
     const age = calculateApplianceAge(appliance.purchaseYear);
     const lifespan = AVG_LIFESPAN_YEARS[appliance.category] || 5;
     const ageRatio = age / lifespan;
 
-    if (appliance.warrantyEndDate) {
+    if (settings.warranty && appliance.warrantyEndDate) {
       const warrantyEnd = new Date(appliance.warrantyEndDate);
       const diffDays = Math.ceil(
         (warrantyEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
@@ -220,7 +243,27 @@ export const generateReminders = (appliances: Appliance[]): Reminder[] => {
       }
     }
 
-    if (ageRatio >= 0.8) {
+    if (settings.repair && appliance.currentFault) {
+      const fault = appliance.currentFault;
+      const severityMap = { severe: 'danger' as const, moderate: 'warning' as const, minor: 'info' as const };
+      const severityLabelMap = { severe: '严重', moderate: '中度', minor: '轻微' };
+      const reminderSeverity = severityMap[fault.severity] || 'info';
+
+      reminders.push({
+        id: `fault-${appliance.id}`,
+        type: 'repair' as ReminderType,
+        title: `当前${severityLabelMap[fault.severity]}故障`,
+        description: `${appliance.name} 存在${severityLabelMap[fault.severity]}故障：${fault.description}${fault.severity === 'severe' ? '，建议尽快维修或考虑更换。' : fault.severity === 'moderate' ? '，建议安排检修。' : '，可暂时观察。'}`,
+        applianceId: appliance.id,
+        applianceName: appliance.name,
+        date: fault.date || today,
+        severity: reminderSeverity,
+        isRead: false,
+        enabled: true,
+      });
+    }
+
+    if (settings.repair && ageRatio >= 0.8) {
       reminders.push({
         id: `repair-${appliance.id}`,
         type: 'repair' as ReminderType,
@@ -228,34 +271,36 @@ export const generateReminders = (appliances: Appliance[]): Reminder[] => {
         description: `${appliance.name} 已使用 ${age} 年（平均寿命 ${lifespan} 年），故障率上升，建议考虑换新。`,
         applianceId: appliance.id,
         applianceName: appliance.name,
-        date: `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+        date: today,
         severity: ageRatio >= 1 ? 'danger' : 'warning',
         isRead: false,
         enabled: true,
       });
     }
 
-    const dailyHours = calculateDailyHours(
-      appliance.usageFrequency,
-      appliance.dailyUsageHours
-    );
-    const annualCost = calculateAnnualElectricityCost(appliance.power, dailyHours);
-    if (annualCost >= 800) {
-      reminders.push({
-        id: `energy-${appliance.id}`,
-        type: 'energy' as ReminderType,
-        title: '能耗偏高提醒',
-        description: `${appliance.name} 年电费约 ${annualCost} 元，建议更换能效等级更高的新机以节省开支。`,
-        applianceId: appliance.id,
-        applianceName: appliance.name,
-        date: `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
-        severity: annualCost >= 1200 ? 'danger' : 'warning',
-        isRead: false,
-        enabled: true,
-      });
+    if (settings.energy) {
+      const dailyHours = calculateDailyHours(
+        appliance.usageFrequency,
+        appliance.dailyUsageHours
+      );
+      const annualCost = calculateAnnualElectricityCost(appliance.power, dailyHours);
+      if (annualCost >= 800) {
+        reminders.push({
+          id: `energy-${appliance.id}`,
+          type: 'energy' as ReminderType,
+          title: '能耗偏高提醒',
+          description: `${appliance.name} 年电费约 ${annualCost} 元，建议更换能效等级更高的新机以节省开支。`,
+          applianceId: appliance.id,
+          applianceName: appliance.name,
+          date: today,
+          severity: annualCost >= 1200 ? 'danger' : 'warning',
+          isRead: false,
+          enabled: true,
+        });
+      }
     }
 
-    if (appliance.totalRepairCost >= appliance.purchasePrice * 0.4) {
+    if (settings.repair && appliance.totalRepairCost >= appliance.purchasePrice * 0.4) {
       reminders.push({
         id: `repaircost-${appliance.id}`,
         type: 'repair' as ReminderType,
@@ -263,8 +308,23 @@ export const generateReminders = (appliances: Appliance[]): Reminder[] => {
         description: `${appliance.name} 累计维修费已达 ${appliance.totalRepairCost} 元，建议综合评估换新方案。`,
         applianceId: appliance.id,
         applianceName: appliance.name,
-        date: appliance.lastRepairDate,
+        date: appliance.lastRepairDate || today,
         severity: 'danger',
+        isRead: false,
+        enabled: true,
+      });
+    }
+
+    if (settings.maintenance && ageRatio >= 0.5 && ageRatio < 0.8 && !appliance.currentFault) {
+      reminders.push({
+        id: `maint-${appliance.id}`,
+        type: 'maintenance' as ReminderType,
+        title: '定期保养提醒',
+        description: `${appliance.name} 已使用 ${age} 年，建议定期检查保养以延长使用寿命。`,
+        applianceId: appliance.id,
+        applianceName: appliance.name,
+        date: today,
+        severity: 'info',
         isRead: false,
         enabled: true,
       });

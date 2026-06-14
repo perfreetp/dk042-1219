@@ -48,6 +48,36 @@
   gap: $spacing-md;
 }
 
+.applianceCardWrapper {
+  position: relative;
+}
+
+.cardActions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: -8rpx;
+  padding: 0 $spacing-md $spacing-md;
+  justify-content: flex-end;
+}
+
+.cardActionBtn {
+  padding: 6rpx 20rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  background: $color-bg-hover;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.cardActionBtnDanger {
+  color: $color-error;
+  background: rgba(239, 68, 68, 0.08);
+}
+
 .fab {
   position: fixed;
   right: $spacing-lg;

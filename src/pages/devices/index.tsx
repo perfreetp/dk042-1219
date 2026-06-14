@@ -9,38 +9,42 @@ import StatCard from '@/components/StatCard';
 import ApplianceCard from '@/components/ApplianceCard';
 import styles from './index.module.scss';
 
+const defaultFormData = () => ({
+  name: '',
+  category: '冰箱' as ApplianceCategory,
+  brand: '',
+  model: '',
+  purchaseYear: new Date().getFullYear() - 3,
+  purchasePrice: 3000,
+  power: 500,
+  usageFrequency: 'medium' as UsageFrequency,
+  dailyUsageHours: 4,
+  repairCount: 0,
+  totalRepairCost: 0,
+  lastRepairDate: '',
+  warrantyEndDate: `${new Date().getFullYear() + 1}-12-31`,
+  currentFault: {
+    description: '',
+    date: '',
+    severity: 'minor' as 'minor' | 'moderate' | 'severe',
+  },
+});
+
 const DevicesPage: React.FC = () => {
   const {
     appliances,
     selectedApplianceId,
     setSelectedAppliance,
     addAppliance,
+    updateAppliance,
+    deleteAppliance,
     initStore,
   } = useApplianceStore();
 
   const [filterCategory, setFilterCategory] = useState<ApplianceCategory | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '冰箱' as ApplianceCategory,
-    brand: '',
-    model: '',
-    purchaseYear: new Date().getFullYear() - 3,
-    purchasePrice: 3000,
-    power: 500,
-    usageFrequency: 'medium' as UsageFrequency,
-    dailyUsageHours: 4,
-    repairCount: 0,
-    totalRepairCost: 0,
-    lastRepairDate: '',
-    warrantyEndDate: `${new Date().getFullYear() + 1}-12-31`,
-    currentFault: {
-      description: '',
-      date: '',
-      severity: 'minor' as 'minor' | 'moderate' | 'severe',
-    },
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState(defaultFormData());
 
   useDidShow(() => {
     initStore();
@@ -61,6 +65,48 @@ const DevicesPage: React.FC = () => {
     const avgAge = total > 0 ? (totalAge / total).toFixed(1) : '0';
     return { total, highRisk, totalRepairCost, avgAge };
   }, [appliances]);
+
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormData(defaultFormData());
+    setShowModal(true);
+  };
+
+  const openEditModal = (appliance: Appliance) => {
+    setEditingId(appliance.id);
+    setFormData({
+      name: appliance.name,
+      category: appliance.category,
+      brand: appliance.brand,
+      model: appliance.model,
+      purchaseYear: appliance.purchaseYear,
+      purchasePrice: appliance.purchasePrice,
+      power: appliance.power,
+      usageFrequency: appliance.usageFrequency,
+      dailyUsageHours: appliance.dailyUsageHours,
+      repairCount: appliance.repairCount,
+      totalRepairCost: appliance.totalRepairCost,
+      lastRepairDate: appliance.lastRepairDate,
+      warrantyEndDate: appliance.warrantyEndDate,
+      currentFault: appliance.currentFault
+        ? { ...appliance.currentFault }
+        : { description: '', date: '', severity: 'minor' },
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = (id: string) => {
+    Taro.showModal({
+      title: '确认删除',
+      content: '删除后相关提醒和候选数据也会清除，确定吗？',
+      success: (res) => {
+        if (res.confirm) {
+          deleteAppliance(id);
+          Taro.showToast({ title: '已删除', icon: 'success' });
+        }
+      },
+    });
+  };
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
@@ -97,30 +143,41 @@ const DevicesPage: React.FC = () => {
       };
     }
 
-    addAppliance(applianceData);
+    if (editingId) {
+      updateAppliance(editingId, applianceData);
+      Taro.showToast({ title: '更新成功', icon: 'success' });
+    } else {
+      addAppliance(applianceData);
+      Taro.showToast({ title: '添加成功', icon: 'success' });
+    }
 
-    Taro.showToast({ title: '添加成功', icon: 'success' });
     setShowModal(false);
-    setFormData({
-      name: '',
-      category: '冰箱',
-      brand: '',
-      model: '',
-      purchaseYear: new Date().getFullYear() - 3,
-      purchasePrice: 3000,
-      power: 500,
-      usageFrequency: 'medium',
-      dailyUsageHours: 4,
-      repairCount: 0,
-      totalRepairCost: 0,
-      lastRepairDate: '',
-      warrantyEndDate: `${new Date().getFullYear() + 1}-12-31`,
-      currentFault: {
-        description: '',
-        date: '',
-        severity: 'minor',
-      },
-    });
+    setEditingId(null);
+    setFormData(defaultFormData());
+  };
+
+  const renderCategoryGrid = () => {
+    const rows: ApplianceCategory[][] = [];
+    const chunkSize = 4;
+    for (let i = 0; i < CATEGORY_LIST.length; i += chunkSize) {
+      rows.push(CATEGORY_LIST.slice(i, i + chunkSize));
+    }
+    return rows.map((row, ri) => (
+      <View className={styles.segmented} key={ri}>
+        {row.map((cat) => (
+          <View
+            key={cat}
+            className={classnames(
+              styles.segmentedItem,
+              formData.category === cat && 'active'
+            )}
+            onClick={() => setFormData({ ...formData, category: cat })}
+          >
+            {cat}
+          </View>
+        ))}
+      </View>
+    ));
   };
 
   return (
@@ -187,23 +244,44 @@ const DevicesPage: React.FC = () => {
             </View>
           ) : (
             filteredAppliances.map((appliance) => (
-              <ApplianceCard
-                key={appliance.id}
-                appliance={appliance}
-                selected={selectedApplianceId === appliance.id}
-                showDecision
-                onClick={() => {
-                  setSelectedAppliance(
-                    selectedApplianceId === appliance.id ? null : appliance.id
-                  );
-                }}
-              />
+              <View key={appliance.id} className={styles.applianceCardWrapper}>
+                <ApplianceCard
+                  appliance={appliance}
+                  selected={selectedApplianceId === appliance.id}
+                  showDecision
+                  onClick={() => {
+                    setSelectedAppliance(
+                      selectedApplianceId === appliance.id ? null : appliance.id
+                    );
+                  }}
+                />
+                <View className={styles.cardActions}>
+                  <View
+                    className={styles.cardActionBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(appliance);
+                    }}
+                  >
+                    ✏️ 编辑
+                  </View>
+                  <View
+                    className={classnames(styles.cardActionBtn, styles.cardActionBtnDanger)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(appliance.id);
+                    }}
+                  >
+                    🗑️ 删除
+                  </View>
+                </View>
+              </View>
             ))
           )}
         </View>
       </View>
 
-      <View className={styles.fab} onClick={() => setShowModal(true)}>
+      <View className={styles.fab} onClick={openAddModal}>
         <Text>＋</Text>
       </View>
 
@@ -211,7 +289,9 @@ const DevicesPage: React.FC = () => {
         <View className={styles.modalMask} onClick={() => setShowModal(false)}>
           <View className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
             <View className={styles.modalHeader}>
-              <Text className={styles.modalTitle}>添加家电设备</Text>
+              <Text className={styles.modalTitle}>
+                {editingId ? '编辑家电设备' : '添加家电设备'}
+              </Text>
               <View className={styles.modalClose} onClick={() => setShowModal(false)}>
                 <Text>✕</Text>
               </View>
@@ -230,20 +310,7 @@ const DevicesPage: React.FC = () => {
 
               <View className={styles.formGroup}>
                 <Text className={styles.formLabel}>设备类别</Text>
-                <View className={styles.segmented}>
-                  {CATEGORY_LIST.slice(0, 4).map((cat) => (
-                    <View
-                      key={cat}
-                      className={classnames(
-                        styles.segmentedItem,
-                        formData.category === cat && 'active'
-                      )}
-                      onClick={() => setFormData({ ...formData, category: cat })}
-                    >
-                      {cat}
-                    </View>
-                  ))}
-                </View>
+                {renderCategoryGrid()}
               </View>
 
               <View className={styles.formRow}>
@@ -438,6 +505,23 @@ const DevicesPage: React.FC = () => {
                   </View>
                 </View>
               </View>
+
+              {editingId && formData.currentFault.description.trim() && (
+                <View className={styles.formGroup}>
+                  <View
+                    className={classnames(styles.segmentedItem, 'active')}
+                    style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        currentFault: { description: '', date: '', severity: 'minor' },
+                      })
+                    }
+                  >
+                    🩹 清除故障（已修复）
+                  </View>
+                </View>
+              )}
             </ScrollView>
 
             <View className={styles.modalFooter}>
@@ -451,7 +535,7 @@ const DevicesPage: React.FC = () => {
                 className={classnames('btnPrimary', styles.footerBtn)}
                 onClick={handleSubmit}
               >
-                确认添加
+                {editingId ? '保存修改' : '确认添加'}
               </Button>
             </View>
           </View>
