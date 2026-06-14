@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Input, Button } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useApplianceStore } from '@/store/appliance';
-import { ApplianceCategory, CATEGORY_LIST, UsageFrequency, FREQUENCY_LABEL } from '@/types';
+import { Appliance, ApplianceCategory, CATEGORY_LIST, UsageFrequency, FREQUENCY_LABEL } from '@/types';
 import { calculateRepairRisk, getRiskLevel, calculateApplianceAge, formatCurrency } from '@/utils/calculator';
 import StatCard from '@/components/StatCard';
 import ApplianceCard from '@/components/ApplianceCard';
@@ -35,6 +35,11 @@ const DevicesPage: React.FC = () => {
     totalRepairCost: 0,
     lastRepairDate: '',
     warrantyEndDate: `${new Date().getFullYear() + 1}-12-31`,
+    currentFault: {
+      description: '',
+      date: '',
+      severity: 'minor' as 'minor' | 'moderate' | 'severe',
+    },
   });
 
   useDidShow(() => {
@@ -67,7 +72,7 @@ const DevicesPage: React.FC = () => {
       return;
     }
 
-    addAppliance({
+    const applianceData: Omit<Appliance, 'id' | 'createdAt'> = {
       name: formData.name,
       category: formData.category,
       brand: formData.brand,
@@ -82,7 +87,17 @@ const DevicesPage: React.FC = () => {
       lastRepairDate: formData.lastRepairDate,
       warrantyEndDate: formData.warrantyEndDate,
       maintenanceRecord: [],
-    });
+    };
+
+    if (formData.currentFault.description.trim()) {
+      applianceData.currentFault = {
+        description: formData.currentFault.description.trim(),
+        date: formData.currentFault.date || new Date().toISOString().split('T')[0],
+        severity: formData.currentFault.severity,
+      };
+    }
+
+    addAppliance(applianceData);
 
     Taro.showToast({ title: '添加成功', icon: 'success' });
     setShowModal(false);
@@ -100,6 +115,11 @@ const DevicesPage: React.FC = () => {
       totalRepairCost: 0,
       lastRepairDate: '',
       warrantyEndDate: `${new Date().getFullYear() + 1}-12-31`,
+      currentFault: {
+        description: '',
+        date: '',
+        severity: 'minor',
+      },
     });
   };
 
@@ -350,6 +370,73 @@ const DevicesPage: React.FC = () => {
                     setFormData({ ...formData, warrantyEndDate: e.detail.value })
                   }
                 />
+              </View>
+
+              <View className={styles.formGroup}>
+                <Text className={styles.formLabel}>当前故障（如有）</Text>
+                <Input
+                  className="inputField"
+                  placeholder="请描述当前故障情况，如：不制冷、异响等"
+                  value={formData.currentFault.description}
+                  onInput={(e) =>
+                    setFormData({
+                      ...formData,
+                      currentFault: {
+                        ...formData.currentFault,
+                        description: e.detail.value,
+                      },
+                    })
+                  }
+                />
+              </View>
+
+              <View className={styles.formRow}>
+                <View className={styles.formGroup}>
+                  <Text className={styles.formLabel}>故障发生日期</Text>
+                  <Input
+                    className="inputField"
+                    placeholder="YYYY-MM-DD"
+                    value={formData.currentFault.date}
+                    onInput={(e) =>
+                      setFormData({
+                        ...formData,
+                        currentFault: {
+                          ...formData.currentFault,
+                          date: e.detail.value,
+                        },
+                      })
+                    }
+                  />
+                </View>
+                <View className={styles.formGroup}>
+                  <Text className={styles.formLabel}>故障严重程度</Text>
+                  <View className={styles.segmented}>
+                    {[
+                      { key: 'minor' as const, label: '轻微' },
+                      { key: 'moderate' as const, label: '中度' },
+                      { key: 'severe' as const, label: '严重' },
+                    ].map((s) => (
+                      <View
+                        key={s.key}
+                        className={classnames(
+                          styles.segmentedItem,
+                          formData.currentFault.severity === s.key && 'active'
+                        )}
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            currentFault: {
+                              ...formData.currentFault,
+                              severity: s.key,
+                            },
+                          })
+                        }
+                      >
+                        {s.label}
+                      </View>
+                    ))}
+                  </View>
+                </View>
               </View>
             </ScrollView>
 

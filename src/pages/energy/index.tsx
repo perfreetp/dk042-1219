@@ -35,8 +35,10 @@ const EnergyPage: React.FC = () => {
 
   const selectedCandidate = useMemo(() => {
     if (!selectedAppliance) return null;
-    return candidates.find((c) => c.compareTargetId === selectedAppliance.id && c.isFavorite)
-      || candidates.find((c) => c.compareTargetId === selectedAppliance.id);
+    return (
+      candidates.find((c) => c.compareTargetId === selectedAppliance.id && c.isFavorite) ||
+      candidates.find((c) => c.compareTargetId === selectedAppliance.id)
+    );
   }, [candidates, selectedAppliance]);
 
   const comparison: EnergyComparison | null = useMemo(() => {
@@ -48,8 +50,9 @@ const EnergyPage: React.FC = () => {
   const allComparisons = useMemo(() => {
     return appliances
       .map((app) => {
-        const cand = candidates.find((c) => c.compareTargetId === app.id && c.isFavorite)
-          || candidates.find((c) => c.compareTargetId === app.id);
+        const cand =
+          candidates.find((c) => c.compareTargetId === app.id && c.isFavorite) ||
+          candidates.find((c) => c.compareTargetId === app.id);
         const newPower = cand?.power || Math.round(app.power * 0.6);
         return compareEnergy(app, newPower);
       })
@@ -65,22 +68,18 @@ const EnergyPage: React.FC = () => {
     [allComparisons]
   );
 
-  const maxCost = useMemo(() => {
-    if (!comparison) return 1;
-    const costs = viewMode === 'annual'
-      ? [comparison.oldAnnualCost, comparison.newAnnualCost]
-      : viewMode === 'monthly'
-      ? [comparison.oldMonthlyCost, comparison.newMonthlyCost]
-      : [comparison.oldDailyKWh * 0.56, comparison.newDailyKWh * 0.56];
-    return Math.max(...costs);
-  }, [comparison, viewMode]);
-
-  const getCostValues = (c: EnergyComparison) => {
-    if (viewMode === 'annual') return { old: c.oldAnnualCost, new: c.newAnnualCost };
-    if (viewMode === 'monthly') return { old: c.oldMonthlyCost, new: c.newMonthlyCost };
+  const getCostValues = (c: EnergyComparison, mode: ViewMode) => {
+    if (mode === 'annual') return { old: c.oldAnnualCost, new: c.newAnnualCost };
+    if (mode === 'monthly') return { old: c.oldMonthlyCost, new: c.newMonthlyCost };
     const rate = 0.56;
     return { old: c.oldDailyKWh * rate, new: c.newDailyKWh * rate };
   };
+
+  const maxCost = useMemo(() => {
+    if (!comparison) return 1;
+    const { old, new: newCost } = getCostValues(comparison, viewMode);
+    return Math.max(old, newCost, 1);
+  }, [comparison, viewMode]);
 
   if (!selectedAppliance || !comparison) {
     return (
@@ -93,8 +92,18 @@ const EnergyPage: React.FC = () => {
     );
   }
 
-  const { old: oldCost, new: newCost } = getCostValues(comparison);
+  const { old: oldCost, new: newCost } = getCostValues(comparison, viewMode);
   const modeLabel = viewMode === 'annual' ? '年' : viewMode === 'monthly' ? '月' : '日';
+
+  const powerSavingsRatio = comparison.oldPower > 0
+    ? ((comparison.oldPower - comparison.newPower) / comparison.oldPower) * 100
+    : 0;
+  const costSavingsRatio = oldCost > 0 ? ((oldCost - newCost) / oldCost) * 100 : 0;
+  const annualKWhOld = comparison.oldDailyKWh * 365;
+  const annualKWhNew = comparison.newDailyKWh * 365;
+  const electricitySavingsRatio = annualKWhOld > 0
+    ? ((annualKWhOld - annualKWhNew) / annualKWhOld) * 100
+    : 0;
 
   return (
     <ScrollView scrollY className={styles.page}>
@@ -115,19 +124,23 @@ const EnergyPage: React.FC = () => {
 
       <View className={styles.overviewCard}>
         <Text className={styles.overviewIcon}>🌱</Text>
-        <View className={styles.overviewLabel}>更换 {selectedAppliance.name} 年预计节省</View>
+        <View className={styles.overviewLabel}>
+          更换 {selectedAppliance.name} {modeLabel}预计节省
+        </View>
         <View style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <Text className={styles.overviewValue}>{formatCurrency(comparison.annualSavings)}</Text>
+          <Text className={styles.overviewValue}>
+            {formatCurrency(viewMode === 'annual'
+              ? comparison.annualSavings
+              : viewMode === 'monthly'
+              ? comparison.annualSavings / 12
+              : comparison.annualSavings / 365)}
+          </Text>
           <Text className={styles.overviewUnit}>/ 电费</Text>
         </View>
         <View className={styles.overviewSub}>
           <View className={styles.overviewSubItem}>
             <View className={styles.overviewSubValue}>
-              {(
-                ((comparison.oldPower - comparison.newPower) / comparison.oldPower) *
-                100
-              ).toFixed(0)}
-              %
+              {powerSavingsRatio.toFixed(0)}%
             </View>
             <View className={styles.overviewSubLabel}>能效提升</View>
           </View>
@@ -139,7 +152,7 @@ const EnergyPage: React.FC = () => {
           </View>
           <View className={styles.overviewSubItem}>
             <View className={styles.overviewSubValue}>
-              {(comparison.oldAnnualKWh ? (comparison.oldAnnualKWh - (comparison as any).newAnnualKWh) / comparison.oldAnnualKWh * 100 : 0).toFixed(0)}%
+              {electricitySavingsRatio.toFixed(0)}%
             </View>
             <View className={styles.overviewSubLabel}>用电减少</View>
           </View>
@@ -181,8 +194,22 @@ const EnergyPage: React.FC = () => {
                 </View>
               </View>
               <View className={styles.barMeta}>
-                <Text>{selectedAppliance.power}W · {calculateDailyHours(selectedAppliance.usageFrequency, selectedAppliance.dailyUsageHours)}h/{modeLabel === '日' ? '日' : '天'}</Text>
-                <Text>电费 {modeLabel}度</Text>
+                <Text>
+                  {selectedAppliance.power}W ·{' '}
+                  {calculateDailyHours(
+                    selectedAppliance.usageFrequency,
+                    selectedAppliance.dailyUsageHours
+                  )}
+                  h/{modeLabel === '日' ? '日' : '天'}
+                </Text>
+                <Text>
+                  电费 {viewMode === 'annual'
+                    ? comparison.oldAnnualCost.toFixed(2)
+                    : viewMode === 'monthly'
+                    ? comparison.oldMonthlyCost.toFixed(2)
+                    : (comparison.oldDailyKWh * 0.56).toFixed(2)}
+                  元/{modeLabel}
+                </Text>
               </View>
             </View>
           </View>
@@ -199,9 +226,11 @@ const EnergyPage: React.FC = () => {
                 </View>
               </View>
               <View className={styles.barMeta}>
-                <Text>{selectedCandidate?.power || Math.round(selectedAppliance.power * 0.6)}W · 新一级能效</Text>
+                <Text>
+                  {selectedCandidate?.power || Math.round(selectedAppliance.power * 0.6)}W · 新一级能效
+                </Text>
                 <Text style={{ color: '#22c55e', fontWeight: 600 }}>
-                  ↓ {formatCurrency(oldCost - newCost)}
+                  ↓ {formatCurrency(oldCost - newCost)} ({costSavingsRatio.toFixed(0)}%)
                 </Text>
               </View>
             </View>
@@ -225,7 +254,9 @@ const EnergyPage: React.FC = () => {
             <Text className={styles.ecoStatIcon}>🌳</Text>
             <Text className={styles.ecoStatValue}>{totalCO2.toFixed(1)}</Text>
             <Text className={styles.ecoStatUnit}>kg CO₂</Text>
-            <Text className={styles.ecoStatLabel}>年减碳量 ≈ 种树{(totalCO2 / 18).toFixed(1)}棵</Text>
+            <Text className={styles.ecoStatLabel}>
+              年减碳量 ≈ 种树{(totalCO2 / 18).toFixed(1)}棵
+            </Text>
           </View>
         </View>
       </View>
@@ -235,6 +266,9 @@ const EnergyPage: React.FC = () => {
         {allComparisons.map((c) => {
           const appliance = appliances.find((a) => a.id === c.applianceId);
           if (!appliance) return null;
+          const deviceSavingsRatio = c.oldAnnualCost > 0
+            ? ((c.oldAnnualCost - c.newAnnualCost) / c.oldAnnualCost) * 100
+            : 0;
           return (
             <View
               key={c.applianceId}
@@ -254,7 +288,9 @@ const EnergyPage: React.FC = () => {
                   </View>
                 </View>
                 {c.annualSavings > 100 && (
-                  <View className={styles.deviceSaveBadge}>省{c.annualSavings.toFixed(0)}元</View>
+                  <View className={styles.deviceSaveBadge}>
+                    省{c.annualSavings.toFixed(0)}元
+                  </View>
                 )}
               </View>
               <View className={styles.deviceStats}>
@@ -270,14 +306,18 @@ const EnergyPage: React.FC = () => {
                   <View className={styles.deviceStatLabel}>旧机年费</View>
                 </View>
                 <View className={styles.deviceStat}>
-                  <View className={classnames(styles.deviceStatValue, styles.deviceStatValueSave)}>
+                  <View
+                    className={classnames(styles.deviceStatValue, styles.deviceStatValueSave)}
+                  >
                     {formatCurrency(c.newAnnualCost)}
                   </View>
                   <View className={styles.deviceStatLabel}>新年费</View>
                 </View>
                 <View className={styles.deviceStat}>
-                  <View className={classnames(styles.deviceStatValue, styles.deviceStatValueSave)}>
-                    {((1 - c.newAnnualCost / c.oldAnnualCost) * 100).toFixed(0)}%
+                  <View
+                    className={classnames(styles.deviceStatValue, styles.deviceStatValueSave)}
+                  >
+                    {deviceSavingsRatio.toFixed(0)}%
                   </View>
                   <View className={styles.deviceStatLabel}>节省比例</View>
                 </View>

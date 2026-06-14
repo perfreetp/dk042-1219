@@ -3,11 +3,56 @@ import { Appliance, NewApplianceCandidate, Reminder } from '@/types';
 import { mockAppliances, mockCandidates } from '@/data/mockData';
 import { generateReminders, generateId } from '@/utils/calculator';
 
+const STORAGE_KEY = 'appliance_decision_data_v1';
+
+interface PersistedData {
+  appliances: Appliance[];
+  candidates: NewApplianceCandidate[];
+  reminders: Reminder[];
+  selectedApplianceId: string | null;
+  isInitialized: boolean;
+}
+
+const loadFromStorage = (): PersistedData | null => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const data = window.localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const saveToStorage = (data: PersistedData) => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+  } catch {
+    // ignore
+  }
+};
+
+const clearStorage = () => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+};
+
 interface ApplianceStore {
   appliances: Appliance[];
   candidates: NewApplianceCandidate[];
   reminders: Reminder[];
   selectedApplianceId: string | null;
+  storeInitialized: boolean;
 
   addAppliance: (appliance: Omit<Appliance, 'id' | 'createdAt'>) => void;
   updateAppliance: (id: string, data: Partial<Appliance>) => void;
@@ -20,18 +65,38 @@ interface ApplianceStore {
   deleteCandidate: (id: string) => void;
 
   markReminderRead: (id: string) => void;
-  toggleReminderEnabled: (id: string) => void;
+  markAsRead: (id: string) => void;
+  toggleReminderEnabled: (id: string, enabled: boolean) => void;
   refreshReminders: () => void;
   markAllRemindersRead: () => void;
+  markAllAsRead: () => void;
 
   initStore: () => void;
+  resetToMock: () => void;
 }
 
+const getInitialState = () => {
+  const persisted = loadFromStorage();
+  if (persisted && persisted.isInitialized) {
+    return {
+      appliances: persisted.appliances,
+      candidates: persisted.candidates,
+      reminders: persisted.reminders,
+      selectedApplianceId: persisted.selectedApplianceId,
+      storeInitialized: true,
+    };
+  }
+  return {
+    appliances: [],
+    candidates: [],
+    reminders: [],
+    selectedApplianceId: null,
+    storeInitialized: false,
+  };
+};
+
 export const useApplianceStore = create<ApplianceStore>((set, get) => ({
-  appliances: [],
-  candidates: [],
-  reminders: [],
-  selectedApplianceId: null,
+  ...getInitialState(),
 
   addAppliance: (appliance) => {
     const newAppliance: Appliance = {
@@ -41,10 +106,17 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     };
     set((state) => {
       const newAppliances = [...state.appliances, newAppliance];
-      return {
+      const newReminders = mergeReminders(
+        state.reminders,
+        generateReminders(newAppliances)
+      );
+      const newState = {
         appliances: newAppliances,
-        reminders: generateReminders(newAppliances),
+        reminders: newReminders,
+        selectedApplianceId: state.selectedApplianceId || newAppliance.id,
       };
+      persistState({ ...get(), ...newState });
+      return newState;
     });
   },
 
@@ -53,10 +125,16 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
       const newAppliances = state.appliances.map((a) =>
         a.id === id ? { ...a, ...data } : a
       );
-      return {
+      const newReminders = mergeReminders(
+        state.reminders,
+        generateReminders(newAppliances)
+      );
+      const newState = {
         appliances: newAppliances,
-        reminders: generateReminders(newAppliances),
+        reminders: newReminders,
       };
+      persistState({ ...get(), ...newState });
+      return newState;
     });
   },
 
@@ -64,18 +142,28 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
     set((state) => {
       const newAppliances = state.appliances.filter((a) => a.id !== id);
       const newCandidates = state.candidates.filter((c) => c.compareTargetId !== id);
-      return {
+      const newReminders = mergeReminders(
+        state.reminders.filter((r) => r.applianceId !== id),
+        generateReminders(newAppliances)
+      );
+      const newState = {
         appliances: newAppliances,
         candidates: newCandidates,
-        reminders: generateReminders(newAppliances),
+        reminders: newReminders,
         selectedApplianceId:
           state.selectedApplianceId === id ? null : state.selectedApplianceId,
       };
+      persistState({ ...get(), ...newState });
+      return newState;
     });
   },
 
   setSelectedAppliance: (id) => {
-    set({ selectedApplianceId: id });
+    set((state) => {
+      const newState = { selectedApplianceId: id };
+      persistState({ ...state, ...newState });
+      return newState;
+    });
   },
 
   addCandidate: (candidate) => {
@@ -83,71 +171,169 @@ export const useApplianceStore = create<ApplianceStore>((set, get) => ({
       ...candidate,
       id: generateId(),
     };
-    set((state) => ({
-      candidates: [...state.candidates, newCandidate],
-    }));
+    set((state) => {
+      const newState = {
+        candidates: [...state.candidates, newCandidate],
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
   toggleFavorite: (id) => {
-    set((state) => ({
-      candidates: state.candidates.map((c) =>
-        c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
-      ),
-    }));
+    set((state) => {
+      const newState = {
+        candidates: state.candidates.map((c) =>
+          c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
+        ),
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
   updateCandidate: (id, data) => {
-    set((state) => ({
-      candidates: state.candidates.map((c) =>
-        c.id === id ? { ...c, ...data } : c
-      ),
-    }));
+    set((state) => {
+      const newState = {
+        candidates: state.candidates.map((c) =>
+          c.id === id ? { ...c, ...data } : c
+        ),
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
   deleteCandidate: (id) => {
-    set((state) => ({
-      candidates: state.candidates.filter((c) => c.id !== id),
-    }));
+    set((state) => {
+      const newState = {
+        candidates: state.candidates.filter((c) => c.id !== id),
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
   markReminderRead: (id) => {
-    set((state) => ({
-      reminders: state.reminders.map((r) =>
-        r.id === id ? { ...r, isRead: true } : r
-      ),
-    }));
+    set((state) => {
+      const newState = {
+        reminders: state.reminders.map((r) =>
+          r.id === id ? { ...r, isRead: true } : r
+        ),
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
-  toggleReminderEnabled: (id) => {
-    set((state) => ({
-      reminders: state.reminders.map((r) =>
-        r.id === id ? { ...r, enabled: !r.enabled } : r
-      ),
-    }));
+  markAsRead: (id) => {
+    get().markReminderRead(id);
+  },
+
+  toggleReminderEnabled: (id, enabled) => {
+    set((state) => {
+      const newState = {
+        reminders: state.reminders.map((r) =>
+          r.id === id ? { ...r, enabled } : r
+        ),
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
   refreshReminders: () => {
-    set((state) => ({
-      reminders: generateReminders(state.appliances),
-    }));
+    set((state) => {
+      const newReminders = mergeReminders(
+        state.reminders,
+        generateReminders(state.appliances)
+      );
+      const newState = {
+        reminders: newReminders,
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
   },
 
   markAllRemindersRead: () => {
-    set((state) => ({
-      reminders: state.reminders.map((r) => ({ ...r, isRead: true })),
-    }));
+    set((state) => {
+      const newState = {
+        reminders: state.reminders.map((r) => ({ ...r, isRead: true })),
+      };
+      persistState({ ...get(), ...newState });
+      return newState;
+    });
+  },
+
+  markAllAsRead: () => {
+    get().markAllRemindersRead();
   },
 
   initStore: () => {
-    const { appliances } = get();
-    if (appliances.length === 0) {
-      console.log('[Store] 初始化Mock数据');
-      set({
-        appliances: mockAppliances,
-        candidates: mockCandidates,
-        reminders: generateReminders(mockAppliances),
-        selectedApplianceId: mockAppliances[0]?.id || null,
-      });
+    const { storeInitialized, appliances } = get();
+    if (storeInitialized) {
+      if (appliances.length > 0) {
+        get().refreshReminders();
+      }
+      return;
     }
+    console.log('[Store] 首次启动，加载Mock数据');
+    const initialAppliances = mockAppliances;
+    const initialCandidates = mockCandidates;
+    const initialReminders = generateReminders(initialAppliances);
+    const initialState = {
+      appliances: initialAppliances,
+      candidates: initialCandidates,
+      reminders: initialReminders,
+      selectedApplianceId: initialAppliances[0]?.id || null,
+      storeInitialized: true,
+    };
+    set(initialState);
+    persistState({ ...get(), ...initialState });
+  },
+
+  resetToMock: () => {
+    clearStorage();
+    const initialAppliances = mockAppliances;
+    const initialCandidates = mockCandidates;
+    const initialReminders = generateReminders(initialAppliances);
+    const initialState = {
+      appliances: initialAppliances,
+      candidates: initialCandidates,
+      reminders: initialReminders,
+      selectedApplianceId: initialAppliances[0]?.id || null,
+      storeInitialized: true,
+    };
+    set(initialState);
   },
 }));
+
+function mergeReminders(
+  existing: Reminder[],
+  generated: Reminder[]
+): Reminder[] {
+  const existingMap = new Map(existing.map((r) => [r.id, r]));
+  return generated.map((g) => {
+    const existingReminder = existingMap.get(g.id);
+    if (existingReminder) {
+      return {
+        ...g,
+        isRead: existingReminder.isRead,
+        enabled: existingReminder.enabled,
+      };
+    }
+    return g;
+  });
+}
+
+function persistState(state: ApplianceStore) {
+  const data: PersistedData = {
+    appliances: state.appliances,
+    candidates: state.candidates,
+    reminders: state.reminders,
+    selectedApplianceId: state.selectedApplianceId,
+    isInitialized: state.storeInitialized,
+  };
+  saveToStorage(data);
+}

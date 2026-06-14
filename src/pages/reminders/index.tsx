@@ -19,9 +19,27 @@ const severityConfig: Record<string, { label: string }> = {
   info: { label: '提示' },
 };
 
+const typeLabelMap: Record<string, string> = {
+  warranty: '保修',
+  energy: '能耗',
+  repair: '维修',
+  maintenance: '保养',
+};
+
 const RemindersPage: React.FC = () => {
-  const { reminders, appliances, markAsRead, markAllAsRead, toggleReminderEnabled } = useApplianceStore();
+  const {
+    reminders,
+    appliances,
+    markAsRead,
+    markAllAsRead,
+    toggleReminderEnabled,
+    initStore,
+  } = useApplianceStore();
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
+
+  React.useEffect(() => {
+    initStore();
+  }, [initStore]);
 
   const filteredReminders = useMemo(() => {
     let list = reminders;
@@ -30,7 +48,7 @@ const RemindersPage: React.FC = () => {
       const sMap = { danger: 0, warning: 1, info: 2 };
       if (sMap[a.severity] !== sMap[b.severity]) return sMap[a.severity] - sMap[b.severity];
       if (a.isRead !== b.isRead) return a.isRead ? 1 : -1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
   }, [reminders, filterTab]);
 
@@ -88,11 +106,6 @@ const RemindersPage: React.FC = () => {
   const renderReminderItem = (r: Reminder) => {
     const applianceName = getApplianceName(r.applianceId);
     const severityClass = r.severity as 'danger' | 'warning' | 'info';
-    const severityTagStyle = severityClass === 'danger'
-      ? styles.statCountDanger
-      : severityClass === 'warning'
-      ? styles.statCountWarning
-      : styles.statCountInfo;
     return (
       <View
         key={r.id}
@@ -116,18 +129,28 @@ const RemindersPage: React.FC = () => {
             <Text className={styles.reminderTitleText}>{r.title}</Text>
             {!r.isRead && <View className={styles.unreadDot} />}
           </View>
-          <Text className={styles.reminderDate}>{formatDate(r.createdAt)}</Text>
+          <Text className={styles.reminderDate}>{formatDate(r.date)}</Text>
         </View>
 
-        <View className={styles.reminderDescription}>{r.message}</View>
+        <View className={styles.reminderDescription}>{r.description}</View>
 
         <View className={styles.reminderFooter}>
           <View className={styles.reminderTags}>
             <View
               className={classnames(styles.reminderTag)}
               style={{
-                background: severityClass === 'danger' ? 'rgba(239,68,68,0.12)' : severityClass === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.12)',
-                color: severityClass === 'danger' ? '#dc2626' : severityClass === 'warning' ? '#d97706' : '#2563eb',
+                background:
+                  severityClass === 'danger'
+                    ? 'rgba(239,68,68,0.12)'
+                    : severityClass === 'warning'
+                    ? 'rgba(245,158,11,0.12)'
+                    : 'rgba(59,130,246,0.12)',
+                color:
+                  severityClass === 'danger'
+                    ? '#dc2626'
+                    : severityClass === 'warning'
+                    ? '#d97706'
+                    : '#2563eb',
               }}
             >
               {severityConfig[r.severity].label}
@@ -137,7 +160,9 @@ const RemindersPage: React.FC = () => {
                 {applianceName}
               </View>
             )}
-            <View className={styles.reminderTag}>{r.category === 'warranty' ? '保修' : r.category === 'energy' ? '能耗' : r.category === 'repair' ? '维修' : '安全'}</View>
+            <View className={styles.reminderTag}>
+              {typeLabelMap[r.type] || '安全'}
+            </View>
           </View>
           <View className={styles.reminderActions}>
             <Text className={styles.switchLabel}>{r.enabled ? '开启' : '已关闭'}</Text>
@@ -223,7 +248,9 @@ const RemindersPage: React.FC = () => {
       {filteredReminders.length === 0 ? (
         <View className={styles.emptyState}>
           <View className={styles.emptyIcon}>🎉</View>
-          <View className={styles.emptyText}>暂无{filterTab !== 'all' ? severityConfig[filterTab].label : ''}提醒</View>
+          <View className={styles.emptyText}>
+            暂无{filterTab !== 'all' ? severityConfig[filterTab].label : ''}提醒
+          </View>
           <View className={styles.emptyHint}>所有家电状态良好，继续保持！</View>
         </View>
       ) : (
